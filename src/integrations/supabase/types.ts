@@ -14,16 +14,180 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      listings: {
+        Row: {
+          category: string
+          condition: Database["public"]["Enums"]["item_condition"] | null
+          created_at: string
+          description: string | null
+          file_url: string | null
+          id: string
+          images: string[]
+          location: string | null
+          price: number
+          seller_id: string
+          status: Database["public"]["Enums"]["listing_status"]
+          title: string
+          type: Database["public"]["Enums"]["listing_type"]
+          updated_at: string
+          views_count: number
+        }
+        Insert: {
+          category: string
+          condition?: Database["public"]["Enums"]["item_condition"] | null
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          images?: string[]
+          location?: string | null
+          price: number
+          seller_id: string
+          status?: Database["public"]["Enums"]["listing_status"]
+          title: string
+          type: Database["public"]["Enums"]["listing_type"]
+          updated_at?: string
+          views_count?: number
+        }
+        Update: {
+          category?: string
+          condition?: Database["public"]["Enums"]["item_condition"] | null
+          created_at?: string
+          description?: string | null
+          file_url?: string | null
+          id?: string
+          images?: string[]
+          location?: string | null
+          price?: number
+          seller_id?: string
+          status?: Database["public"]["Enums"]["listing_status"]
+          title?: string
+          type?: Database["public"]["Enums"]["listing_type"]
+          updated_at?: string
+          views_count?: number
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          buyer_id: string
+          commission_rate: number
+          created_at: string
+          id: string
+          listing_id: string
+          platform_fee: number
+          seller_earnings: number
+          seller_id: string
+          status: Database["public"]["Enums"]["order_status"]
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          listing_id: string
+          platform_fee: number
+          seller_earnings: number
+          seller_id: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          commission_rate?: number
+          created_at?: string
+          id?: string
+          listing_id?: string
+          platform_fee?: number
+          seller_earnings?: number
+          seller_id?: string
+          status?: Database["public"]["Enums"]["order_status"]
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string | null
+          college: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string | null
+          college?: string | null
+          created_at?: string
+          display_name?: string | null
+          id: string
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string | null
+          college?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "seller" | "buyer"
+      item_condition: "NEW" | "LIKE_NEW" | "GOOD" | "FAIR" | "POOR"
+      listing_status: "ACTIVE" | "SOLD" | "INACTIVE"
+      listing_type: "DIGITAL_NOTE" | "PHYSICAL_ITEM"
+      order_status: "PENDING" | "PAID" | "COMPLETED" | "CANCELLED" | "REFUNDED"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +314,12 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "seller", "buyer"],
+      item_condition: ["NEW", "LIKE_NEW", "GOOD", "FAIR", "POOR"],
+      listing_status: ["ACTIVE", "SOLD", "INACTIVE"],
+      listing_type: ["DIGITAL_NOTE", "PHYSICAL_ITEM"],
+      order_status: ["PENDING", "PAID", "COMPLETED", "CANCELLED", "REFUNDED"],
+    },
   },
 } as const
