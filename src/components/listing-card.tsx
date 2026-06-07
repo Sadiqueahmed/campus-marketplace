@@ -1,4 +1,5 @@
 import { MapPin, FileText, Package } from "lucide-react";
+import { Link } from "@tanstack/react-router";
 
 type Listing = {
   id: string;
@@ -25,7 +26,11 @@ export function ListingCard({ listing }: { listing: Listing }) {
   const cover = listing.images[0];
 
   return (
-    <article className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-elevated)]">
+    <Link
+      to="/listing/$id"
+      params={{ id: listing.id }}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-[var(--shadow-card)] transition-all hover:-translate-y-0.5 hover:shadow-[var(--shadow-elevated)]"
+    >
       <div className="relative aspect-[4/3] w-full overflow-hidden bg-muted">
         {cover ? (
           <img
@@ -71,6 +76,6 @@ export function ListingCard({ listing }: { listing: Listing }) {
           )}
         </div>
       </div>
-    </article>
+    </Link>
   );
 }
