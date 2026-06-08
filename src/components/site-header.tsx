@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { NotificationBell } from "@/components/notification-bell";
 
 export function SiteHeader() {
   const { user, signOut } = useAuth();
@@ -48,6 +49,7 @@ export function SiteHeader() {
         <div className="flex items-center gap-2">
           {user ? (
             <>
+              <NotificationBell />
               <Button
                 size="sm"
                 onClick={() => navigate({ to: "/sell" })}

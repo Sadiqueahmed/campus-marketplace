@@ -69,3 +69,41 @@ export const sendMessage = createServerFn({ method: "POST" })
     }
     return { message: row };
   });
+
+export const getUnreadNotifications = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: rows, error } = await supabase
+      .from("messages")
+      .select("id, listing_id, sender_id, content, created_at")
+      .eq("recipient_id", userId)
+      .is("read_at", null)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (error) {
+      console.error("[getUnreadNotifications]", error);
+      return { notifications: [], count: 0 };
+    }
+    const msgs = rows ?? [];
+    if (msgs.length === 0) return { notifications: [], count: 0 };
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const senderIds = Array.from(new Set(msgs.map((m) => m.sender_id)));
+    const listingIds = Array.from(new Set(msgs.map((m) => m.listing_id)));
+    const [{ data: senders }, { data: listings }] = await Promise.all([
+      supabaseAdmin.from("profiles").select("id, display_name").in("id", senderIds),
+      supabaseAdmin.from("listings").select("id, title").in("id", listingIds),
+    ]);
+    const sMap = new Map((senders ?? []).map((s) => [s.id, s]));
+    const lMap = new Map((listings ?? []).map((l) => [l.id, l]));
+
+    return {
+      notifications: msgs.map((m) => ({
+        ...m,
+        sender_name: sMap.get(m.sender_id)?.display_name ?? "Someone",
+        listing_title: lMap.get(m.listing_id)?.title ?? "your listing",
+      })),
+      count: msgs.length,
+    };
+  });
