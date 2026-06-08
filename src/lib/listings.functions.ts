@@ -50,7 +50,7 @@ export const getListingById = createServerFn({ method: "GET" })
     const { data: row, error } = await supabaseAdmin
       .from("listings")
       .select(
-        "id, seller_id, type, title, description, price, category, condition, location, images, file_url, status, created_at",
+        "id, seller_id, type, title, description, price, category, condition, location, contact_phone, images, file_url, status, created_at",
       )
       .eq("id", data.id)
       .maybeSingle();
@@ -83,6 +83,12 @@ const createListingSchema = z.object({
   category: z.string().min(1).max(64),
   condition: z.enum(["NEW", "LIKE_NEW", "GOOD", "FAIR", "POOR"]).optional(),
   location: z.string().max(120).optional().default(""),
+  contactPhone: z
+    .string()
+    .max(20)
+    .regex(/^[+\d\s\-()]*$/, "Invalid phone")
+    .optional()
+    .default(""),
   images: z
     .array(
       z.object({
@@ -91,6 +97,15 @@ const createListingSchema = z.object({
       }),
     )
     .max(6)
+    .default([]),
+  files: z
+    .array(
+      z.object({
+        name: z.string().max(200),
+        dataUrl: z.string().startsWith("data:"),
+      }),
+    )
+    .max(5)
     .default([]),
 });
 
@@ -123,6 +138,28 @@ export const createListing = createServerFn({ method: "POST" })
       if (signed?.signedUrl) uploadedUrls.push(signed.signedUrl);
     }
 
+    // Upload digital files (any format) → first signed URL goes into file_url
+    let fileUrl: string | null = null;
+    for (const f of data.files) {
+      const match = /^data:(.+);base64,(.+)$/.exec(f.dataUrl);
+      if (!match) continue;
+      const contentType = match[1];
+      const bytes = Buffer.from(match[2], "base64");
+      const safeName = f.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80);
+      const path = `${userId}/${crypto.randomUUID()}-${safeName}`;
+      const { error: upErr } = await supabaseAdmin.storage
+        .from("listing-files")
+        .upload(path, bytes, { contentType, upsert: false });
+      if (upErr) {
+        console.error("[createListing file upload]", upErr);
+        continue;
+      }
+      const { data: signed } = await supabaseAdmin.storage
+        .from("listing-files")
+        .createSignedUrl(path, 60 * 60 * 24 * 365);
+      if (signed?.signedUrl && !fileUrl) fileUrl = signed.signedUrl;
+    }
+
     const { data: row, error } = await supabaseAdmin
       .from("listings")
       .insert({
@@ -134,7 +171,9 @@ export const createListing = createServerFn({ method: "POST" })
         category: data.category,
         condition: data.condition ?? null,
         location: data.location || null,
+        contact_phone: data.contactPhone || null,
         images: uploadedUrls,
+        file_url: fileUrl,
         status: "ACTIVE",
       })
       .select("id")
