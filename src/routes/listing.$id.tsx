@@ -3,12 +3,16 @@ import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ArrowLeft, MapPin, Package, FileText, Loader2, ShieldCheck } from "lucide-react";
+import {
+  ArrowLeft, MapPin, Package, FileText, Loader2, ShieldCheck,
+  Phone, MessageCircle, Download,
+} from "lucide-react";
 
 import { getListingById } from "@/lib/listings.functions";
 import { createOrder } from "@/lib/orders.functions";
 import { useAuth } from "@/lib/auth-context";
 import { SiteHeader } from "@/components/site-header";
+import { ChatPanel } from "@/components/chat-panel";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
@@ -24,6 +28,7 @@ function ListingPage() {
   const fetchListing = useServerFn(getListingById);
   const buy = useServerFn(createOrder);
   const [activeImg, setActiveImg] = useState(0);
+  const [showChat, setShowChat] = useState(false);
 
   const { data, isLoading } = useQuery({
     queryKey: ["listing", id],
@@ -64,6 +69,10 @@ function ListingPage() {
   const cover = listing.images[activeImg];
   const isOwn = user?.id === listing.seller_id;
   const sellerInitial = (data?.seller?.display_name ?? "?").charAt(0).toUpperCase();
+  const phone = listing.contact_phone?.replace(/[^\d+]/g, "") ?? "";
+  const waLink = phone
+    ? `https://wa.me/${phone.replace(/^\+/, "")}?text=${encodeURIComponent(`Hi! I'm interested in your CampusScribe listing: ${listing.title}`)}`
+    : null;
 
   return (
     <Shell>
@@ -132,14 +141,53 @@ function ListingPage() {
             ) : listing.status !== "ACTIVE" ? (
               <Button disabled className="mt-4 w-full">Sold</Button>
             ) : (
-              <Button
-                onClick={() => buyMut.mutate()}
-                disabled={buyMut.isPending}
-                className="mt-4 w-full bg-[image:var(--gradient-hero)] text-primary-foreground"
+              <div className="mt-4 space-y-2">
+                <Button
+                  onClick={() => buyMut.mutate()}
+                  disabled={buyMut.isPending}
+                  className="w-full bg-[image:var(--gradient-hero)] text-primary-foreground"
+                >
+                  {buyMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Buy now
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowChat((v) => !v)}
+                  className="w-full"
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  {showChat ? "Hide chat" : "Chat with seller"}
+                </Button>
+                {phone && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button asChild variant="outline">
+                      <a href={`tel:${phone}`}>
+                        <Phone className="h-4 w-4" /> Call
+                      </a>
+                    </Button>
+                    <Button asChild variant="outline">
+                      <a href={waLink ?? "#"} target="_blank" rel="noreferrer">
+                        <MessageCircle className="h-4 w-4" /> WhatsApp
+                      </a>
+                    </Button>
+                  </div>
+                )}
+                {isDigital && listing.file_url && (
+                  <p className="rounded-lg bg-muted/50 p-2 text-center text-xs text-muted-foreground">
+                    File unlocks after purchase.
+                  </p>
+                )}
+              </div>
+            )}
+            {isOwn && isDigital && listing.file_url && (
+              <a
+                href={listing.file_url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-md border border-border px-3 py-2 text-sm hover:bg-accent/10"
               >
-                {buyMut.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                Buy now
-              </Button>
+                <Download className="h-4 w-4" /> Preview your file
+              </a>
             )}
             <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
               <ShieldCheck className="h-3 w-3 text-accent" /> Verified student seller
@@ -167,6 +215,15 @@ function ListingPage() {
               <h2 className="font-display text-lg font-semibold">Description</h2>
               <p className="mt-2 whitespace-pre-wrap text-sm text-muted-foreground">{listing.description}</p>
             </div>
+          )}
+
+          {showChat && user && !isOwn && (
+            <ChatPanel
+              listingId={listing.id}
+              otherUserId={listing.seller_id}
+              currentUserId={user.id}
+              otherName={data?.seller?.display_name ?? "Seller"}
+            />
           )}
         </div>
       </div>

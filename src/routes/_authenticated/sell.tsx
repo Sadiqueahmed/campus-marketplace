@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Loader2, Upload, X, FileText, Package } from "lucide-react";
+import { Loader2, Upload, X, FileText, Package, Paperclip } from "lucide-react";
 
 import { createListing } from "@/lib/listings.functions";
 import { SiteHeader } from "@/components/site-header";
@@ -25,6 +25,7 @@ export const Route = createFileRoute("/_authenticated/sell")({
 });
 
 type ImgPreview = { name: string; dataUrl: string };
+type FilePreview = { name: string; dataUrl: string; size: number };
 
 const PHYSICAL_CATEGORIES = ["Textbooks", "Electronics", "Furniture", "Dorm", "Bikes", "Clothing", "Other"];
 const DIGITAL_CATEGORIES = ["Lecture notes", "Past papers", "Lab manuals", "Project reports", "Cheat sheets", "Other"];
@@ -47,6 +48,8 @@ function SellPage() {
   const [condition, setCondition] = useState<string>("GOOD");
   const [location, setLocation] = useState("");
   const [images, setImages] = useState<ImgPreview[]>([]);
+  const [files, setFiles] = useState<FilePreview[]>([]);
+  const [contactPhone, setContactPhone] = useState("");
 
   const mut = useMutation({
     mutationFn: async () =>
@@ -59,7 +62,9 @@ function SellPage() {
           category,
           condition: type === "PHYSICAL_ITEM" ? (condition as never) : undefined,
           location,
+          contactPhone,
           images,
+          files: files.map(({ name, dataUrl }) => ({ name, dataUrl })),
         },
       }),
     onSuccess: (res) => {
@@ -83,6 +88,26 @@ function SellPage() {
       ),
     );
     setImages((prev) => [...prev, ...previews]);
+  }
+
+  async function onDocs(list: FileList | null) {
+    if (!list) return;
+    const arr = Array.from(list).slice(0, 5 - files.length);
+    // 15MB per file cap
+    const ok = arr.filter((f) => f.size <= 15 * 1024 * 1024);
+    if (ok.length < arr.length) toast.error("Some files exceeded 15MB and were skipped");
+    const previews = await Promise.all(
+      ok.map(
+        (f) =>
+          new Promise<FilePreview>((resolve) => {
+            const r = new FileReader();
+            r.onload = () =>
+              resolve({ name: f.name, dataUrl: String(r.result), size: f.size });
+            r.readAsDataURL(f);
+          }),
+      ),
+    );
+    setFiles((prev) => [...prev, ...previews]);
   }
 
   const categories = type === "PHYSICAL_ITEM" ? PHYSICAL_CATEGORIES : DIGITAL_CATEGORIES;
@@ -200,6 +225,55 @@ function SellPage() {
                 </label>
               )}
             </div>
+          </Field>
+
+          {type === "DIGITAL_NOTE" && (
+            <Field label={`Files — PDF, Word, images, anything (${files.length}/5)`}>
+              <div className="space-y-2">
+                {files.map((f, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center justify-between rounded-lg border border-border bg-muted/30 px-3 py-2 text-sm"
+                  >
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Paperclip className="h-4 w-4 shrink-0 text-muted-foreground" />
+                      <span className="truncate">{f.name}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {(f.size / 1024).toFixed(0)} KB
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setFiles(files.filter((_, idx) => idx !== i))}
+                      className="grid h-6 w-6 place-items-center rounded-full hover:bg-background"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+                {files.length < 5 && (
+                  <label className="flex cursor-pointer items-center justify-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground hover:border-primary hover:text-primary">
+                    <Upload className="h-4 w-4" />
+                    Add files (any format, max 15MB each)
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => onDocs(e.target.files)}
+                    />
+                  </label>
+                )}
+              </div>
+            </Field>
+          )}
+
+          <Field label="Contact number (optional — lets buyers call/WhatsApp directly)">
+            <Input
+              type="tel"
+              value={contactPhone}
+              onChange={(e) => setContactPhone(e.target.value)}
+              placeholder="+91 98765 43210"
+            />
           </Field>
 
           <div className="rounded-lg bg-muted/50 p-4 text-sm">
