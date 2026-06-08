@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           category: string
           condition: Database["public"]["Enums"]["item_condition"] | null
+          contact_phone: string | null
           created_at: string
           description: string | null
           file_url: string | null
@@ -35,6 +36,7 @@ export type Database = {
         Insert: {
           category: string
           condition?: Database["public"]["Enums"]["item_condition"] | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           file_url?: string | null
@@ -52,6 +54,7 @@ export type Database = {
         Update: {
           category?: string
           condition?: Database["public"]["Enums"]["item_condition"] | null
+          contact_phone?: string | null
           created_at?: string
           description?: string | null
           file_url?: string | null
@@ -65,6 +68,36 @@ export type Database = {
           type?: Database["public"]["Enums"]["listing_type"]
           updated_at?: string
           views_count?: number
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          listing_id: string
+          read_at: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          listing_id: string
+          read_at?: string | null
+          recipient_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          listing_id?: string
+          read_at?: string | null
+          recipient_id?: string
+          sender_id?: string
         }
         Relationships: []
       }
