@@ -3,11 +3,5 @@
   "buildCommand": "vite build",
   "outputDirectory": ".vercel/output",
   "installCommand": "npm install",
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/((?!api/).*)",
-      "destination": "/"
-    }
-  ]
+  "framework": null
 }
