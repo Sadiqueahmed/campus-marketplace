@@ -13,6 +13,7 @@ import heroImage from "@/assets/hero-marketplace.jpg";
 
 const searchSchema = z.object({
   type: z.enum(["DIGITAL_NOTE", "PHYSICAL_ITEM"]).optional(),
+  q: z.string().trim().min(1).max(120).optional(),
 });
 
 export const Route = createFileRoute("/")({
@@ -36,13 +37,13 @@ export const Route = createFileRoute("/")({
 });
 
 function Index() {
-  const { type } = Route.useSearch();
+  const { type, q } = Route.useSearch();
   const navigate = useNavigate({ from: "/" });
   const fetchListings = useServerFn(getListings);
 
   const { data, isLoading } = useQuery({
-    queryKey: ["listings", { type }],
-    queryFn: () => fetchListings({ data: { type, limit: 12 } }),
+    queryKey: ["listings", { type, q }],
+    queryFn: () => fetchListings({ data: { type, q, limit: 24 } }),
   });
 
   const listings = data?.listings ?? [];
@@ -71,16 +72,26 @@ function Index() {
               college. Buy what you need at student prices.
             </p>
 
-            <div className="flex max-w-md items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-[var(--shadow-card)]">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                const fd = new FormData(e.currentTarget);
+                const next = String(fd.get("q") ?? "").trim();
+                navigate({ search: { type, q: next || undefined } });
+              }}
+              className="flex max-w-md items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-[var(--shadow-card)]"
+            >
               <Search className="ml-2 h-4 w-4 text-muted-foreground" />
               <Input
+                name="q"
+                defaultValue={q ?? ""}
                 placeholder="Search textbooks, mini-fridge, DSA notes…"
                 className="border-0 bg-transparent shadow-none focus-visible:ring-0"
               />
-              <Button size="sm" className="bg-[image:var(--gradient-hero)] text-primary-foreground">
+              <Button type="submit" size="sm" className="bg-[image:var(--gradient-hero)] text-primary-foreground">
                 Search
               </Button>
-            </div>
+            </form>
 
             <div className="flex flex-wrap gap-6 pt-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-2">
