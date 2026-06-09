@@ -44,11 +44,19 @@ export const createOrder = createServerFn({ method: "POST" })
       throw new Error("Could not place order");
     }
 
-    // Mark listing as SOLD for physical items so it disappears from the feed.
-    await supabaseAdmin
+    // Physical items are one-of-a-kind → mark SOLD so they disappear from the feed.
+    // Digital notes can be sold to many buyers → keep ACTIVE.
+    const { data: lt } = await supabaseAdmin
       .from("listings")
-      .update({ status: "SOLD" })
-      .eq("id", listing.id);
+      .select("type")
+      .eq("id", listing.id)
+      .maybeSingle();
+    if (lt?.type === "PHYSICAL_ITEM") {
+      await supabaseAdmin
+        .from("listings")
+        .update({ status: "SOLD" })
+        .eq("id", listing.id);
+    }
 
     return { order };
   });

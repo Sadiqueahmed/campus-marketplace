@@ -13,6 +13,7 @@ export const getListings = createServerFn({ method: "GET" })
       .object({
         type: z.enum(["DIGITAL_NOTE", "PHYSICAL_ITEM"]).optional(),
         category: z.string().min(1).max(64).optional(),
+        q: z.string().trim().min(1).max(120).optional(),
         limit: z.number().int().min(1).max(48).default(12),
       })
       .parse(input ?? {}),
@@ -31,6 +32,10 @@ export const getListings = createServerFn({ method: "GET" })
 
     if (data.type) query = query.eq("type", data.type);
     if (data.category) query = query.eq("category", data.category);
+    if (data.q) {
+      const safe = data.q.replace(/[%,()]/g, " ");
+      query = query.or(`title.ilike.%${safe}%,description.ilike.%${safe}%,category.ilike.%${safe}%`);
+    }
 
     const { data: rows, error } = await query;
     if (error) {
