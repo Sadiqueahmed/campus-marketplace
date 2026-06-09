@@ -77,7 +77,7 @@ function Index() {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
                 const next = String(fd.get("q") ?? "").trim();
-                navigate({ search: (prev) => ({ ...prev, q: next || undefined }) });
+                navigate({ search: { type, q: next || undefined } });
               }}
               className="flex max-w-md items-center gap-2 rounded-xl border border-border bg-card p-2 shadow-[var(--shadow-card)]"
             >
