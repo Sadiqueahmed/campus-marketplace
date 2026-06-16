@@ -18,29 +18,29 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 export function NotificationBell() {
-  const { user } = useAuth();
+  const { user, dbUserId } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
   const fetchUnread = useServerFn(getUnreadNotifications);
 
   const { data } = useQuery({
-    queryKey: ["notifications", user?.id],
+    queryKey: ["notifications", dbUserId],
     queryFn: () => fetchUnread(),
-    enabled: !!user,
+    enabled: !!user && !!dbUserId,
     refetchOnWindowFocus: true,
   });
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !dbUserId) return;
     const channel = supabase
-      .channel(`notifications:${user.id}`)
+      .channel(`notifications:${dbUserId}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `recipient_id=eq.${user.id}`,
+          filter: `recipient_id=eq.${dbUserId}`,
         },
         (payload) => {
           const m = payload.new as { content: string; listing_id: string };
@@ -51,14 +51,14 @@ export function NotificationBell() {
               onClick: () => navigate({ to: "/listing/$id", params: { id: m.listing_id } }),
             },
           });
-          qc.invalidateQueries({ queryKey: ["notifications", user.id] });
+          qc.invalidateQueries({ queryKey: ["notifications", dbUserId] });
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, qc, navigate]);
+  }, [user, dbUserId, qc, navigate]);
 
   if (!user) return null;
 

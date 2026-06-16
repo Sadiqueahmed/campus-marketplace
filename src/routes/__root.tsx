@@ -11,6 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { AppClerkProvider } from "@/integrations/clerk/clerk-provider";
 import { AuthProvider } from "@/lib/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -74,33 +75,55 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   );
 }
 
-export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CampusScribe — Campus marketplace for students" },
-      { name: "description", content: "Buy and sell books, electronics, furniture, and notes on your campus. Keep 95% of every sale on CampusScribe." },
-      { name: "author", content: "CampusScribe" },
-      { property: "og:title", content: "CampusScribe — Campus marketplace for students" },
-      { property: "og:description", content: "Buy and sell books, electronics, furniture, and notes on your campus." },
-      { property: "og:type", content: "website" },
-      { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:title", content: "CampusScribe — Campus marketplace for students" },
-      { name: "twitter:description", content: "Buy and sell books, electronics, furniture, and notes on your campus." },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-    ],
-  }),
-  shellComponent: RootShell,
-  component: RootComponent,
-  notFoundComponent: NotFoundComponent,
-  errorComponent: ErrorComponent,
-});
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
+  {
+    head: () => ({
+      meta: [
+        { charSet: "utf-8" },
+        { name: "viewport", content: "width=device-width, initial-scale=1" },
+        {
+          title: "CampusScribe — Campus marketplace for students",
+        },
+        {
+          name: "description",
+          content:
+            "Buy and sell books, electronics, furniture, and notes on your campus. Keep 95% of every sale on CampusScribe.",
+        },
+        { name: "author", content: "CampusScribe" },
+        {
+          property: "og:title",
+          content: "CampusScribe — Campus marketplace for students",
+        },
+        {
+          property: "og:description",
+          content:
+            "Buy and sell books, electronics, furniture, and notes on your campus.",
+        },
+        { property: "og:type", content: "website" },
+        { name: "twitter:card", content: "summary_large_image" },
+        {
+          name: "twitter:title",
+          content: "CampusScribe — Campus marketplace for students",
+        },
+        {
+          name: "twitter:description",
+          content:
+            "Buy and sell books, electronics, furniture, and notes on your campus.",
+        },
+      ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+      ],
+    }),
+    shellComponent: RootShell,
+    component: RootComponent,
+    notFoundComponent: NotFoundComponent,
+    errorComponent: ErrorComponent,
+  }
+);
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
@@ -120,12 +143,14 @@ function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-        <Outlet />
-        <Toaster richColors position="top-right" />
-      </AuthProvider>
-    </QueryClientProvider>
+    <AppClerkProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
+          <Outlet />
+          <Toaster richColors position="top-right" />
+        </AuthProvider>
+      </QueryClientProvider>
+    </AppClerkProvider>
   );
 }

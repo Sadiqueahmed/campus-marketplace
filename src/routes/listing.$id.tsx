@@ -24,7 +24,7 @@ export const Route = createFileRoute("/listing/$id")({
 function ListingPage() {
   const { id } = Route.useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, dbUserId } = useAuth();
   const fetchListing = useServerFn(getListingById);
   const buy = useServerFn(createOrder);
   const [activeImg, setActiveImg] = useState(0);
@@ -67,7 +67,7 @@ function ListingPage() {
 
   const isDigital = listing.type === "DIGITAL_NOTE";
   const cover = listing.images[activeImg];
-  const isOwn = user?.id === listing.seller_id;
+  const isOwn = dbUserId === listing.seller_id;
   const sellerInitial = (data?.seller?.display_name ?? "?").charAt(0).toUpperCase();
   const phone = listing.contact_phone?.replace(/[^\d+]/g, "") ?? "";
   const waLink = phone
@@ -217,11 +217,11 @@ function ListingPage() {
             </div>
           )}
 
-          {showChat && user && !isOwn && (
+          {showChat && user && dbUserId && !isOwn && (
             <ChatPanel
               listingId={listing.id}
               otherUserId={listing.seller_id}
-              currentUserId={user.id}
+              currentUserId={dbUserId}
               otherName={data?.seller?.display_name ?? "Seller"}
             />
           )}
