@@ -14,5 +14,8 @@ export default defineConfig({
   },
   nitro: {
     preset: "vercel",
+    routeRules: {
+      "/**": { maxBodyLength: 25 * 1024 * 1024 }, // 25 MB for base64 image uploads
+    },
   },
 });
