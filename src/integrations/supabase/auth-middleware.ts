@@ -93,8 +93,10 @@ export const requireSupabaseAuth = createMiddleware({
       // Non-critical — we can still proceed without name
     }
   } catch (err) {
-    console.error("[requireSupabaseAuth] Clerk token verification failed:", err);
-    throw new Error("Unauthorized: Invalid token");
+    const errMsg = err instanceof Error ? err.message : String(err);
+    console.error("[requireSupabaseAuth] Clerk token verification failed:", errMsg);
+    console.error("[requireSupabaseAuth] Secret key starts with:", CLERK_SECRET_KEY?.slice(0, 12) + "...");
+    throw new Error(`Unauthorized: Invalid token — ${errMsg}`);
   }
 
 
