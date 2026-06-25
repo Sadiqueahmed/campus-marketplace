@@ -4,8 +4,12 @@
 // For user-authenticated queries (with RLS), use the auth middleware instead.
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
+import * as dotenv from 'dotenv';
 
 function createSupabaseAdminClient() {
+  // Explicitly load .env to ensure it's available in the server runtime
+  dotenv.config();
+
   // Try multiple sources: process.env (Nitro/Node), import.meta.env (Vite), VITE_ prefix fallback
   const SUPABASE_URL =
     process.env.SUPABASE_URL ||

@@ -5,6 +5,7 @@ import { createMiddleware } from "@tanstack/react-start";
 import { getRequest } from "@tanstack/react-start/server";
 import { verifyToken } from "@clerk/backend";
 import { createClerkClient } from "@clerk/backend";
+import * as dotenv from 'dotenv';
 
 // Deterministic UUID v5 from Clerk user ID — keeps DB columns as uuid.
 // Uses a fixed namespace so the same Clerk ID always maps to the same UUID.
@@ -47,6 +48,8 @@ function bytesToUuid(bytes: Uint8Array): string {
 export const requireSupabaseAuth = createMiddleware({
   type: "function",
 }).server(async ({ next }) => {
+  dotenv.config(); // Ensure env vars are loaded
+
   const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY;
   if (!CLERK_SECRET_KEY) {
     throw new Error(
