@@ -111,8 +111,23 @@ export const requireSupabaseAuth = createMiddleware({
     "@/integrations/supabase/client.server"
   );
 
-  // Auto-upsert profile on first request (replaces the old handle_new_user trigger)
+  // Auto-upsert shadow user and profile on first request
   try {
+    // 1. Check if shadow user exists in auth.users (required for foreign key constraints)
+    const { data: { user: existingAuthUser } } = await supabaseAdmin.auth.admin.getUserById(userId);
+    
+    if (!existingAuthUser) {
+      // Create shadow user with the deterministic UUID
+      await supabaseAdmin.auth.admin.createUser({
+        id: userId,
+        email: clerkEmail || `${userId}@campusscribe.local`,
+        email_confirm: true,
+        password: crypto.randomUUID(), // Unusable password
+        user_metadata: { source: 'clerk_shadow' }
+      });
+    }
+
+    // 2. Upsert public profile
     await supabaseAdmin
       .from("profiles")
       .upsert(
@@ -124,7 +139,7 @@ export const requireSupabaseAuth = createMiddleware({
         { onConflict: "id", ignoreDuplicates: true }
       );
 
-    // Also ensure they have a buyer role
+    // 3. Ensure they have a buyer role
     await supabaseAdmin
       .from("user_roles")
       .upsert(
@@ -132,8 +147,8 @@ export const requireSupabaseAuth = createMiddleware({
         { onConflict: "user_id,role", ignoreDuplicates: true }
       );
   } catch (err) {
-    // Non-critical — profile may already exist
-    console.warn("[requireSupabaseAuth] Profile upsert warning:", err);
+    // Log properly so we can debug if it fails
+    console.error("[requireSupabaseAuth] Shadow user / profile upsert failed:", err);
   }
 
   return next({
