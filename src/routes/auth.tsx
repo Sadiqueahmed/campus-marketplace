@@ -1,11 +1,16 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { BookOpen } from "lucide-react";
-import { SignIn, SignUp } from "@clerk/react";
+import { toast } from "sonner";
 
+import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { useAuth } from "@/lib/auth-context";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
@@ -28,12 +33,57 @@ function AuthPage() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const { redirect } = Route.useSearch();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [displayName, setDisplayName] = useState("");
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     if (!loading && user) {
       navigate({ to: redirect ?? "/dashboard" });
     }
   }, [user, loading, navigate, redirect]);
+
+  async function handleGoogle() {
+    setBusy(true);
+    try {
+      const result = await lovable.auth.signInWithOAuth("google", {
+        redirect_uri: window.location.origin,
+      });
+      if (result.error) {
+        toast.error(result.error.message ?? "Google sign-in failed");
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Google sign-in failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else toast.success("Signed in");
+  }
+
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin,
+        data: { display_name: displayName || email.split("@")[0] },
+      },
+    });
+    setBusy(false);
+    if (error) toast.error(error.message);
+    else toast.success("Check your email to confirm your account");
+  }
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
@@ -57,21 +107,30 @@ function AuthPage() {
 
       <div className="flex items-center justify-center p-6">
         <div className="w-full max-w-sm space-y-6">
-          <div className="space-y-1.5 text-center lg:hidden">
-            <Link to="/" className="inline-flex items-center gap-2">
-              <BookOpen className="h-5 w-5 text-primary" />
-              <span className="font-display text-lg font-bold">
-                CampusScribe
-              </span>
-            </Link>
-          </div>
-          <div className="space-y-1">
-            <h2 className="font-display text-3xl font-bold tracking-tight">
-              Welcome
-            </h2>
+          <div className="space-y-1 text-center lg:text-left">
+            <h2 className="font-display text-3xl font-bold tracking-tight">Welcome</h2>
             <p className="text-sm text-muted-foreground">
               Sign in or create your account.
             </p>
+          </div>
+
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={handleGoogle}
+            disabled={busy}
+          >
+            Continue with Google
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or</span>
+            </div>
           </div>
 
           <Tabs defaultValue="signin">
@@ -79,47 +138,41 @@ function AuthPage() {
               <TabsTrigger value="signin">Sign in</TabsTrigger>
               <TabsTrigger value="signup">Sign up</TabsTrigger>
             </TabsList>
+
             <TabsContent value="signin" className="mt-6">
-              <div className="flex justify-center [&_.cl-card]:shadow-none [&_.cl-rootBox]:w-full">
-                <SignIn
-                  routing="hash"
-                  forceRedirectUrl={redirect ?? "/dashboard"}
-                  appearance={{
-                    elements: {
-                      rootBox: "w-full",
-                      card: "shadow-none border-0 p-0 w-full",
-                      headerTitle: "hidden",
-                      headerSubtitle: "hidden",
-                      socialButtonsBlockButton:
-                        "border-border hover:bg-accent/10",
-                      formButtonPrimary:
-                        "bg-[image:var(--gradient-hero)] text-primary-foreground hover:opacity-95",
-                      footerAction: "hidden",
-                    },
-                  }}
-                />
-              </div>
+              <form onSubmit={handleSignIn} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="si-email">Email</Label>
+                  <Input id="si-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="si-pw">Password</Label>
+                  <Input id="si-pw" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>
+                  Sign in
+                </Button>
+              </form>
             </TabsContent>
+
             <TabsContent value="signup" className="mt-6">
-              <div className="flex justify-center [&_.cl-card]:shadow-none [&_.cl-rootBox]:w-full">
-                <SignUp
-                  routing="hash"
-                  forceRedirectUrl={redirect ?? "/dashboard"}
-                  appearance={{
-                    elements: {
-                      rootBox: "w-full",
-                      card: "shadow-none border-0 p-0 w-full",
-                      headerTitle: "hidden",
-                      headerSubtitle: "hidden",
-                      socialButtonsBlockButton:
-                        "border-border hover:bg-accent/10",
-                      formButtonPrimary:
-                        "bg-[image:var(--gradient-hero)] text-primary-foreground hover:opacity-95",
-                      footerAction: "hidden",
-                    },
-                  }}
-                />
-              </div>
+              <form onSubmit={handleSignUp} className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="su-name">Display name</Label>
+                  <Input id="su-name" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your name" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="su-email">Email</Label>
+                  <Input id="su-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="su-pw">Password</Label>
+                  <Input id="su-pw" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
+                </div>
+                <Button type="submit" className="w-full" disabled={busy}>
+                  Create account
+                </Button>
+              </form>
             </TabsContent>
           </Tabs>
         </div>
