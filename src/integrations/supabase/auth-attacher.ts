@@ -1,8 +1,8 @@
-// Client-side middleware that attaches the Clerk session token
-// as a Bearer token on every server function RPC.
-// Must be registered as a global `functionMiddleware` in `src/start.ts`.
+// Client-side middleware that attaches the Supabase session bearer token
+// on every server function RPC. Registered as `functionMiddleware` in
+// `src/start.ts`.
 import { createMiddleware } from "@tanstack/react-start";
-import { getToken } from "@clerk/react";
+import { supabase } from "@/integrations/supabase/client";
 
 export const attachSupabaseAuth = createMiddleware({
   type: "function",
@@ -10,12 +10,12 @@ export const attachSupabaseAuth = createMiddleware({
   let token: string | null = null;
   try {
     if (typeof window !== "undefined") {
-      token = await getToken();
+      const { data } = await supabase.auth.getSession();
+      token = data.session?.access_token ?? null;
     }
   } catch {
-    // Silent — no token means unauthenticated request
+    // no session
   }
-
   return next({
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
