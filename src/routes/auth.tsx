@@ -14,6 +14,18 @@ import { Label } from "@/components/ui/label";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 
+function getSafeRedirectPath(value?: string) {
+  if (typeof window === "undefined") return "/dashboard";
+  if (!value) return "/dashboard";
+  try {
+    const url = new URL(value, window.location.origin);
+    if (url.origin !== window.location.origin) return "/dashboard";
+    return `${url.pathname}${url.search}${url.hash}` || "/dashboard";
+  } catch {
+    return "/dashboard";
+  }
+}
+
 export const Route = createFileRoute("/auth")({
   validateSearch: searchSchema,
   ssr: false,
@@ -38,18 +50,19 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  const redirectPath = getSafeRedirectPath(redirect);
 
   useEffect(() => {
     if (!loading && user) {
-      navigate({ to: redirect ?? "/dashboard" });
+      navigate({ to: redirectPath as never, replace: true });
     }
-  }, [user, loading, navigate, redirect]);
+  }, [user, loading, navigate, redirectPath]);
 
   async function handleGoogle() {
     setBusy(true);
     try {
       const result = await lovable.auth.signInWithOAuth("google", {
-        redirect_uri: window.location.origin,
+        redirect_uri: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectPath)}`,
       });
       if (result.error) {
         toast.error(result.error.message ?? "Google sign-in failed");
@@ -67,7 +80,10 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) toast.error(error.message);
-    else toast.success("Signed in");
+    else {
+      toast.success("Signed in");
+      navigate({ to: redirectPath as never, replace: true });
+    }
   }
 
   async function handleSignUp(e: React.FormEvent) {
@@ -77,7 +93,7 @@ function AuthPage() {
       email,
       password,
       options: {
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(redirectPath)}`,
         data: { display_name: displayName || email.split("@")[0] },
       },
     });
