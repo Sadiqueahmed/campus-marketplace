@@ -1,0 +1,1 @@
+delete from public.listings where title like 'E2E %';
