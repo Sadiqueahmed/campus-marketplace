@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { cloneElement, isValidElement, useId, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { useMutation } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -325,10 +325,15 @@ function TypeCard({
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const id = useId();
+  const control =
+    isValidElement(children) && !(children as { props?: { id?: string } }).props?.id
+      ? cloneElement(children as React.ReactElement<{ id?: string }>, { id })
+      : children;
   return (
     <div className="space-y-2">
-      <Label>{label}</Label>
-      {children}
+      <Label htmlFor={id}>{label}</Label>
+      {control}
     </div>
   );
 }
